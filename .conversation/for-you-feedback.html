@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#11100e">
+  <title>For You — Customer feedback</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #11100e;
+      --panel: #171613;
+      --panel-soft: #1a1916;
+      --line: #2b2924;
+      --text: #f0eee9;
+      --muted: #89857c;
+      --subtle: #5c5952;
+      --gold: #c49a4b;
+      --gold-light: #dfb65f;
+      --green: #94b49a;
+      --red: #d38a79;
+      --radius: 16px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse at 13% 20%, rgba(196,154,75,.075), transparent 34rem),
+        var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, textarea { font: inherit; }
+    button { color: inherit; }
+    .topbar {
+      height: 62px;
+      padding: 0 max(24px, calc((100vw - 1120px) / 2));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,.075);
+      background: rgba(17,16,14,.74);
+    }
+    .brand { display: flex; gap: 11px; align-items: center; }
+    .brand-mark {
+      width: 28px; height: 28px; display: grid; place-items: center;
+      border: 1px solid rgba(196,154,75,.48); border-radius: 8px;
+      color: var(--gold-light); font-size: 15px; background: rgba(196,154,75,.08);
+    }
+    .brand-name { font-size: 10px; font-weight: 760; letter-spacing: .2em; line-height: 1.2; }
+    .brand-caption { color: var(--muted); font-size: 8px; letter-spacing: .13em; margin-top: 3px; }
+    .view-toggle {
+      border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px;
+      background: #151411; color: #d1cec7; font-size: 11px; cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    .view-toggle:hover { border-color: #69604e; background: #1c1a16; }
+    main { max-width: 1120px; margin: 0 auto; padding: 58px 24px 0; }
+    .guest-layout {
+      min-height: 390px; display: grid; grid-template-columns: 1fr 1fr;
+      align-items: center; gap: clamp(36px, 8vw, 105px);
+    }
+    .intro { max-width: 440px; padding-bottom: 9px; }
+    .eyebrow { color: var(--muted); font-size: 9px; letter-spacing: .18em; text-transform: uppercase; }
+    h1 {
+      font-family: Georgia, "Times New Roman", serif; font-size: clamp(38px, 5vw, 56px);
+      font-weight: 400; letter-spacing: -.055em; line-height: 1.04; margin: 13px 0 14px;
+    }
+    h1 span { color: var(--gold-light); }
+    .intro-copy { color: #969188; font-size: 13px; line-height: 1.7; max-width: 340px; margin: 0; }
+    .privacy-pill {
+      display: inline-flex; align-items: center; gap: 8px; margin-top: 21px;
+      border: 1px solid var(--line); border-radius: 999px; color: #b1ada5;
+      padding: 8px 12px; font-size: 10px;
+    }
+    .privacy-pill svg { width: 13px; height: 13px; color: var(--gold); }
+    .form-card, .panel, .metric {
+      border: 1px solid var(--line); background: rgba(25,24,21,.84); border-radius: var(--radius);
+    }
+    .form-card { padding: 22px; box-shadow: 0 18px 70px rgba(0,0,0,.13); }
+    .field-label { display: block; color: #b5b1a8; font-size: 10px; font-weight: 600; margin: 0 0 8px; }
+    .overall-label { margin-bottom: 5px; }
+    .rating-row { display: flex; gap: 3px; }
+    .star {
+      padding: 0 2px; border: 0; background: transparent; color: #46423a;
+      font-size: 23px; line-height: 1.2; cursor: pointer; transition: color .12s, transform .12s;
+    }
+    .star:hover { transform: translateY(-1px) scale(1.1); }
+    .star.selected, .star.preview { color: var(--gold-light); }
+    .overall-rating { margin: 0 0 16px -2px; }
+    .rating-categories {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px;
+      border-top: 1px solid rgba(255,255,255,.07); padding: 15px 0 16px;
+    }
+    .category .field-label { margin-bottom: 4px; font-size: 9px; }
+    .category .star { font-size: 15px; padding: 0 1px; }
+    .category .rating-row { gap: 0; }
+    textarea, input[type="text"] {
+      width: 100%; border: 1px solid #302e29; border-radius: 9px; background: #11100e;
+      color: var(--text); outline: none; transition: border-color .18s, box-shadow .18s;
+    }
+    textarea:focus, input[type="text"]:focus { border-color: #8b7040; box-shadow: 0 0 0 3px rgba(196,154,75,.09); }
+    textarea { resize: vertical; min-height: 86px; padding: 12px; line-height: 1.5; font-size: 11px; }
+    textarea::placeholder, input::placeholder { color: #77736b; }
+    .field-block { margin-top: 15px; }
+    input[type="text"] { height: 39px; padding: 0 12px; font-size: 11px; }
+    .optional { color: var(--subtle); font-weight: 400; }
+    .submit-btn {
+      margin-top: 13px; width: 100%; height: 42px; display: flex; align-items: center;
+      justify-content: center; gap: 8px; border: 0; border-radius: 9px;
+      background: linear-gradient(100deg, #b5893c, #d1a64f); color: #19150f;
+      font-size: 11px; font-weight: 750; cursor: pointer; transition: filter .16s, transform .16s;
+    }
+    .submit-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .submit-btn:disabled { cursor: wait; opacity: .7; transform: none; }
+    .form-note { color: var(--subtle); font-size: 9px; line-height: 1.5; margin: 8px 0 0; }
+    .success-card { text-align: center; padding: 34px 22px; }
+    .success-icon {
+      width: 50px; height: 50px; display: grid; place-items: center; margin: 0 auto 14px;
+      border-radius: 50%; border: 1px solid rgba(148,180,154,.3); color: var(--green);
+      background: rgba(148,180,154,.08); font-size: 23px;
+    }
+    .success-card h2 { font-family: Georgia, serif; font-size: 25px; font-weight: 400; margin: 0 0 8px; }
+    .success-card p { color: var(--muted); line-height: 1.6; font-size: 12px; margin: 0 auto 19px; max-width: 250px; }
+    .text-btn { border: 1px solid var(--line); background: transparent; border-radius: 8px; padding: 9px 12px; color: #d4d0c7; font-size: 10px; cursor: pointer; }
+    .text-btn:hover { border-color: #69604e; }
+    .guest-footer, .dashboard-footer {
+      max-width: 1120px; border-top: 1px solid rgba(255,255,255,.055);
+      margin: 28px auto 0; padding: 16px 24px 26px; color: #555149;
+      font-size: 8px; letter-spacing: .1em; text-transform: uppercase;
+    }
+    .dashboard { padding-top: 27px; }
+    .dashboard-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 17px; }
+    h2.page-title { font-family: Georgia, "Times New Roman", serif; font-weight: 400; font-size: clamp(30px, 4vw, 39px); letter-spacing: -.045em; margin: 6px 0 0; }
+    .dash-actions { display: flex; align-items: center; gap: 8px; }
+    .action-btn {
+      padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px;
+      background: #171613; color: #cbc7be; font-size: 10px; cursor: pointer;
+    }
+    .action-btn:hover { border-color: #706144; }
+    .action-btn.primary { border-color: rgba(196,154,75,.38); color: var(--gold-light); }
+    .action-btn:disabled { opacity: .45; cursor: default; }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .metric { min-height: 99px; padding: 15px 17px; }
+    .metric-label { color: var(--muted); font-size: 8px; letter-spacing: .15em; text-transform: uppercase; }
+    .metric-value { font-family: Georgia, serif; font-size: 31px; letter-spacing: -.04em; margin-top: 9px; line-height: 1; }
+    .metric-suffix { color: var(--muted); font: 11px var(--font, ui-sans-serif, system-ui); letter-spacing: 0; }
+    .metric-help { color: var(--subtle); font-size: 9px; margin-top: 8px; }
+    .mini-stars { color: var(--gold-light); font: 11px system-ui; letter-spacing: 1px; margin-top: 4px; }
+    .dash-grid { display: grid; grid-template-columns: .95fr 1.35fr; gap: 10px; margin-top: 10px; }
+    .panel { min-height: 245px; padding: 17px; }
+    .panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
+    .panel-heading h3 { font-family: Georgia, serif; font-size: 17px; font-weight: 400; margin: 5px 0 0; }
+    .panel-icon { color: #a6a195; font-size: 15px; }
+    .distribution { display: flex; flex-direction: column; gap: 13px; }
+    .dist-row { display: grid; grid-template-columns: 18px 1fr 18px; gap: 9px; align-items: center; color: #aaa69d; font-size: 9px; }
+    .bar-track { height: 5px; border-radius: 9px; background: #2a2823; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #b6873e, #d4aa55); transition: width .35s; }
+    .dist-count { text-align: right; color: #8f8b82; }
+    .comments-list { display: flex; flex-direction: column; }
+    .comment-item { padding: 12px 0; border-top: 1px solid rgba(255,255,255,.065); }
+    .comment-meta { display: flex; align-items: center; gap: 8px; color: #87837a; font-size: 9px; }
+    .comment-score { color: var(--gold-light); font-weight: 700; }
+    .comment-name { color: #aaa69d; }
+    .comment-date { margin-left: auto; }
+    .comment-text { margin-top: 7px; color: #d1cdc5; font-size: 11px; line-height: 1.55; overflow-wrap: anywhere; }
+    .empty-state { padding: 30px 12px; text-align: center; color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .empty-state .empty-mark { color: #625a49; font-size: 21px; display: block; margin-bottom: 9px; }
+    .empty-state strong { color: #c9c4ba; font-weight: 550; }
+    .dashboard-footer { margin-top: 26px; }
+    .toast {
+      position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 12px);
+      border: 1px solid #34312a; background: #1c1a16; color: #ebe7df; border-radius: 10px;
+      padding: 11px 15px; font-size: 11px; box-shadow: 0 10px 35px #0008;
+      opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 5;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @media (max-width: 720px) {
+      .topbar { padding: 0 18px; }
+      main { padding: 35px 18px 0; }
+      .guest-layout { grid-template-columns: 1fr; gap: 25px; align-items: start; padding-bottom: 8px; }
+      .intro { max-width: none; }
+      h1 { font-size: 43px; }
+      .intro-copy { max-width: 420px; }
+      .form-card { padding: 18px; }
+      .guest-footer, .dashboard-footer { padding-left: 18px; padding-right: 18px; }
+      .dash-grid { grid-template-columns: 1fr; }
+      .dashboard-heading { align-items: start; }
+      .metrics { gap: 7px; }
+      .metric { padding: 13px 12px; min-height: 90px; }
+      .metric-value { font-size: 27px; }
+    }
+    @media (max-width: 430px) {
+      .topbar { height: 58px; }
+      .brand-caption { font-size: 7px; }
+      .view-toggle { padding: 7px 9px; font-size: 10px; }
+      main { padding-top: 29px; }
+      .rating-categories { gap: 7px; }
+      .category .star { font-size: 14px; }
+      .dashboard-heading { flex-direction: column; align-items: stretch; }
+      .dash-actions { justify-content: flex-start; }
+      .metrics { grid-template-columns: 1fr 1fr; }
+      .metric:last-child { grid-column: 1 / -1; }
+      .metric { min-height: 82px; }
+      .metric:last-child { min-height: 76px; }
+      .metric-value { margin-top: 7px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" aria-label="For You Chinese Restaurant">
+      <div class="brand-mark" aria-hidden="true">♨</div>
+      <div><div class="brand-name">FOR YOU</div><div class="brand-caption">CHINESE RESTAURANT</div></div>
+    </div>
+    <button id="viewToggle" class="view-toggle" type="button" aria-label="Switch to staff view">Staff view&nbsp; ›</button>
+  </header>
+
+  <main>
+    <section id="guestView" class="guest-layout" aria-label="Guest feedback form">
+      <div class="intro">
+        <div class="eyebrow">A quick table check-in</div>
+        <h1>How was your<br><span>experience?</span></h1>
+        <p class="intro-copy">A minute of honest feedback helps us make every plate and every visit better.</p>
+        <div class="privacy-pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 5.5h16v11H9l-5 3v-14Z"/><path d="M8 10h8M8 13h5"/></svg>
+          Anonymous is okay
+        </div>
+      </div>
+
+      <div id="formCard" class="form-card">
+        <form id="feedbackForm" novalidate>
+          <label class="field-label overall-label">Overall experience</label>
+          <div id="overallRating" class="rating-row overall-rating" role="radiogroup" aria-label="Overall experience rating"></div>
+          <div class="rating-categories">
+            <div class="category"><label class="field-label">Food</label><div id="foodRating" class="rating-row" role="radiogroup" aria-label="Food rating"></div></div>
+            <div class="category"><label class="field-label">Service</label><div id="serviceRating" class="rating-row" role="radiogroup" aria-label="Service rating"></div></div>
+            <div class="category"><label class="field-label">Ambience</label><div id="ambienceRating" class="rating-row" role="radiogroup" aria-label="Ambience rating"></div></div>
+          </div>
+          <div class="field-block" style="margin-top:0">
+            <label class="field-label" for="feedbackText">Anything you’d like us to know?</label>
+            <textarea id="feedbackText" maxlength="1000" placeholder="A dish you loved, something we can improve…" aria-label="Your feedback"></textarea>
+          </div>
+          <div class="field-block">
+            <label class="field-label" for="guestName">Name <span class="optional">(optional)</span></label>
+            <input id="guestName" type="text" maxlength="60" autocomplete="name" placeholder="Your name">
+          </div>
+          <button class="submit-btn" type="submit">Send feedback <span aria-hidden="true">›</span></button>
+          <p class="form-note">Your feedback helps us improve. Your name is optional.</p>
+        </form>
+      </div>
+    </section>
+
+    <section id="successCard" class="form-card success-card" hidden aria-live="polite">
+      <div class="success-icon" aria-hidden="true">✓</div>
+      <h2>Thank you for sharing.</h2>
+      <p>Your feedback helps us make the next visit even better.</p>
+      <button id="anotherResponse" class="text-btn" type="button">Leave another response</button>
+    </section>
+
+    <section id="staffView" class="dashboard" aria-label="Staff dashboard" hidden>
+      <div class="dashboard-heading">
+        <div><div class="eyebrow">Team snapshot</div><h2 class="page-title">Customer voice</h2></div>
+        <div class="dash-actions">
+          <button id="exportBtn" class="action-btn" type="button" disabled>Export CSV</button>
+          <button id="refreshBtn" class="action-btn primary" type="button">Refresh</button>
+        </div>
+      </div>
+      <div class="metrics">
+        <article class="metric">
+          <div class="metric-label">Average</div>
+          <div class="metric-value"><span id="averageValue">—</span><span class="metric-suffix"> / 5</span></div>
+          <div id="averageStars" class="mini-stars" aria-label="No ratings yet">☆☆☆☆☆</div>
+        </article>
+        <article class="metric">
+          <div class="metric-label">Responses</div>
+          <div id="responseCount" class="metric-value">0</div>
+          <div class="metric-help">Total feedback</div>
+        </article>
+        <article class="metric">
+          <div class="metric-label">Top signal</div>
+          <div id="topSignal" class="metric-value">—</div>
+          <div id="topSignalHelp" class="metric-help">Highest category average</div>
+        </article>
+      </div>
+      <div class="dash-grid">
+        <section class="panel">
+          <div class="panel-heading">
+            <div><div class="eyebrow">Rating mix</div><h3>At a glance</h3></div>
+            <span class="panel-icon" aria-hidden="true">▥</span>
+          </div>
+          <div id="distribution" class="distribution"></div>
+        </section>
+        <section class="panel">
+          <div class="panel-heading">
+            <div><div class="eyebrow">Latest comments</div><h3>What guests said</h3></div>
+            <span class="panel-icon" aria-hidden="true">▤</span>
+          </div>
+          <div id="commentsList" class="comments-list"></div>
+        </section>
+      </div>
+      <div id="demoActions" style="margin-top:11px;text-align:right">
+        <button id="demoBtn" class="action-btn" type="button">Load example data</button>
+        <button id="clearBtn" class="action-btn" type="button" hidden>Clear saved feedback</button>
+      </div>
+    </section>
+  </main>
+
+  <footer id="guestFooter" class="guest-footer">GOOD FOOD IS A CONVERSATION. THANK YOU FOR BEING PART OF IT.</footer>
+  <footer id="staffFooter" class="dashboard-footer" hidden>GOOD FOOD IS A CONVERSATION. THANK YOU FOR BEING PART OF IT.</footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      "use strict";
+      const STORAGE_KEY = "for-you-customer-feedback-v1";
+      const CATEGORIES = ["food", "service", "ambience"];
+      const ratings = { overall: 0, food: 0, service: 0, ambience: 0 };
+      const $ = (id) => document.getElementById(id);
+      const safeRead = () => {
+        try {
+          const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+          return Array.isArray(value) ? value.filter(isValidEntry) : [];
+        } catch { return []; }
+      };
+      const isValidEntry = (item) =>
+        item && Number.isInteger(item.overall) && item.overall >= 1 && item.overall <= 5 &&
+        CATEGORIES.every((key) => Number.isInteger(item[key]) && item[key] >= 1 && item[key] <= 5);
+      const save = (entries) => localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+      const escapeHTML = (value) => String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[char]);
+      let toastTimer;
+      function toast(message) {
+        const el = $("toast");
+        el.textContent = message;
+        el.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+      }
+      function buildStars(containerId, key, sizeLabel) {
+        const group = $(containerId);
+        for (let score = 1; score <= 5; score++) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "star";
+          button.textContent = "★";
+          button.setAttribute("role", "radio");
+          button.setAttribute("aria-checked", "false");
+          button.setAttribute("aria-label", `${score} out of 5 ${sizeLabel}`);
+          button.dataset.value = String(score);
+          button.addEventListener("click", () => {
+            ratings[key] = score;
+            paintStars(group, key);
+          });
+          button.addEventListener("mouseenter", () => previewStars(group, score));
+          button.addEventListener("mouseleave", () => paintStars(group, key));
+          button.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+              event.preventDefault(); ratings[key] = Math.min(5, (ratings[key] || 0) + 1); paintStars(group, key);
+              group.querySelector(`[data-value="${ratings[key]}"]`).focus();
+            } else if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+              event.preventDefault(); ratings[key] = Math.max(1, (ratings[key] || 2) - 1); paintStars(group, key);
+              group.querySelector(`[data-value="${ratings[key]}"]`).focus();
+            }
+          });
+          group.appendChild(button);
+        }
+      }
+      function paintStars(group, key) {
+        [...group.children].forEach((button) => {
+          const selected = Number(button.dataset.value) <= ratings[key];
+          button.classList.toggle("selected", selected);
+          button.setAttribute("aria-checked", Number(button.dataset.value) === ratings[key] ? "true" : "false");
+        });
+      }
+      function previewStars(group, score) {
+        [...group.children].forEach((button) => {
+          button.classList.toggle("preview", Number(button.dataset.value) <= score);
+        });
+      }
+      buildStars("overallRating", "overall", "overall experience");
+      buildStars("foodRating", "food", "food");
+      buildStars("serviceRating", "service", "service");
+      buildStars("ambienceRating", "ambience", "ambience");
+
+      function switchView(staff) {
+        $("guestView").hidden = staff;
+        $("successCard").hidden = true;
+        $("staffView").hidden = !staff;
+        $("guestFooter").hidden = staff;
+        $("staffFooter").hidden = !staff;
+        $("viewToggle").textContent = staff ? "Guest view  ›" : "Staff view  ›";
+        $("viewToggle").setAttribute("aria-label", staff ? "Switch to guest view" : "Switch to staff view");
+        if (staff) renderDashboard();
+      }
+      $("viewToggle").addEventListener("click", () => switchView($("staffView").hidden));
+      $("anotherResponse").addEventListener("click", () => {
+        $("successCard").hidden = true;
+        $("guestView").hidden = false;
+        $("feedbackText").focus();
+      });
+      $("feedbackForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (Object.values(ratings).some((value) => !value)) {
+          toast("Please choose a star rating for each category.");
+          const firstMissing = Object.keys(ratings).find((key) => !ratings[key]);
+          const target = firstMissing === "overall" ? "overallRating" : `${firstMissing}Rating`;
+          $(target).querySelector("button").focus();
+          return;
+        }
+        const entry = {
+          ...ratings,
+          comment: $("feedbackText").value.trim(),
+          name: $("guestName").value.trim(),
+          date: new Date().toISOString()
+        };
+        try {
+          save([entry, ...safeRead()]);
+          Object.keys(ratings).forEach((key) => { ratings[key] = 0; paintStars($(key === "overall" ? "overallRating" : `${key}Rating`), key); });
+          $("feedbackForm").reset();
+          $("guestView").hidden = true;
+          $("successCard").hidden = false;
+        } catch {
+          toast("Couldn’t save on this device. Check available browser storage.");
+        }
+      });
+
+      function renderDashboard() {
+        const entries = safeRead();
+        const total = entries.length;
+        $("responseCount").textContent = String(total);
+        $("exportBtn").disabled = total === 0;
+        $("clearBtn").hidden = total === 0;
+        $("demoBtn").hidden = total > 0;
+        if (!total) {
+          $("averageValue").textContent = "—";
+          $("averageStars").textContent = "☆☆☆☆☆";
+          $("averageStars").setAttribute("aria-label", "No ratings yet");
+          $("topSignal").textContent = "—";
+          $("topSignalHelp").textContent = "Highest category average";
+          $("distribution").innerHTML = `<div class="empty-state"><span class="empty-mark">✳</span><strong>No ratings yet</strong><br>Guest feedback will appear here.</div>`;
+          $("commentsList").innerHTML = `<div class="empty-state"><span class="empty-mark">✎</span><strong>No comments yet</strong><br>Share the guest form to start a conversation.</div>`;
+          return;
+        }
+        const average = entries.reduce((sum, item) => sum + item.overall, 0) / total;
+        $("averageValue").textContent = average.toFixed(1);
+        const fullStars = Math.round(average);
+        $("averageStars").textContent = "★".repeat(fullStars) + "☆".repeat(5 - fullStars);
+        $("averageStars").setAttribute("aria-label", `${average.toFixed(1)} out of 5 average`);
+        const categoryAverages = CATEGORIES.map((key) => ({
+          name: key[0].toUpperCase() + key.slice(1),
+          average: entries.reduce((sum, item) => sum + item[key], 0) / total
+        })).sort((a, b) => b.average - a.average);
+        $("topSignal").textContent = categoryAverages[0].name;
+        $("topSignalHelp").textContent = `${categoryAverages[0].average.toFixed(1)} / 5 category average`;
+        const counts = [5, 4, 3, 2, 1].map((score) => entries.filter((entry) => entry.overall === score).length);
+        $("distribution").innerHTML = counts.map((count, index) => {
+          const score = 5 - index;
+          const width = total ? (count / total) * 100 : 0;
+          return `<div class="dist-row"><span>${score}★</span><div class="bar-track"><div class="bar-fill" style="width:${width}%"></div></div><span class="dist-count">${count}</span></div>`;
+        }).join("");
+        const withComments = entries.filter((entry) => entry.comment).slice(0, 8);
+        $("commentsList").innerHTML = withComments.length
+          ? withComments.map((entry) => {
+            const date = entry.date && !Number.isNaN(Date.parse(entry.date))
+              ? new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(entry.date))
+              : "";
+            return `<article class="comment-item"><div class="comment-meta"><span class="comment-score">${entry.overall}/5</span><span>${escapeHTML(date)}</span><span class="comment-name">${entry.name ? escapeHTML(entry.name) : "Guest · Anonymous"}</span><span class="comment-date">${entry.food}/5 food</span></div><div class="comment-text">${escapeHTML(entry.comment)}</div></article>`;
+          }).join("")
+          : `<div class="empty-state"><span class="empty-mark">✎</span><strong>No written comments</strong><br>There are ratings, but no guest notes yet.</div>`;
+      }
+      $("refreshBtn").addEventListener("click", () => { renderDashboard(); toast("Dashboard refreshed."); });
+      $("exportBtn").addEventListener("click", () => {
+        const entries = safeRead();
+        if (!entries.length) return;
+        const columns = ["date", "name", "overall", "food", "service", "ambience", "comment"];
+        const csvCell = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+        const csv = [columns.map(csvCell).join(","), ...entries.map((entry) => columns.map((column) => csvCell(entry[column])).join(","))].join("\r\n");
+        const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `for-you-feedback-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      });
+      $("clearBtn").addEventListener("click", () => {
+        if (!window.confirm("Delete all feedback saved in this browser? This cannot be undone.")) return;
+        try { localStorage.removeItem(STORAGE_KEY); renderDashboard(); toast("Saved feedback cleared."); }
+        catch { toast("Couldn’t clear saved feedback."); }
+      });
+      $("demoBtn").addEventListener("click", () => {
+        if (!window.confirm("Add clearly marked example feedback to preview the dashboard?")) return;
+        const now = Date.now();
+        const examples = [
+          { overall: 2, food: 2, service: 2, ambience: 2, comment: "I loved it", name: "Example guest", date: new Date(now - 86400000).toISOString(), demo: true },
+          { overall: 2, food: 2, service: 2, ambience: 2, comment: "I loved everything", name: "Example guest", date: new Date(now - 172800000).toISOString(), demo: true }
+        ];
+        try { save(examples); renderDashboard(); toast("Example data added. Clear it before collecting real feedback."); }
+        catch { toast("Couldn’t save example data in this browser."); }
+      });
+
+      // Keep the guest page ready on first load, but refresh the staff view after a reload.
+      window.addEventListener("storage", (event) => {
+        if (event.key === STORAGE_KEY && !$("staffView").hidden) renderDashboard();
+      });
+    })();
+  </script>
+</body>
+</html>
