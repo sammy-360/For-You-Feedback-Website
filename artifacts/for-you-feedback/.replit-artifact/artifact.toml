@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "For You Feedback"
+description = "A Chinese restaurant feedback website with a guest rating form and an open staff dashboard, storing customer feedback in a Neon Postgres database and designed for GitHub and Vercel."
+version = "1.0.0"
+id = "artifacts/for-you-feedback"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23831
+
+[services.development]
+run = "pnpm --filter @workspace/for-you-feedback run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/for-you-feedback", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/for-you-feedback/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23831"
+BASE_PATH = "/"

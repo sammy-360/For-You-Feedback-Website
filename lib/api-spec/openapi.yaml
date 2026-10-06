@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: feedback
+    description: Customer feedback operations
+  - name: dashboard
+    description: Restaurant feedback dashboard
 paths:
   /healthz:
     get:
@@ -24,6 +28,93 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /feedback:
+    post:
+      operationId: submitFeedback
+      tags: [feedback]
+      summary: Submit a guest review
+      description: Saves a guest's restaurant ratings and optional comment.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackInput"
+      responses:
+        "201":
+          description: Feedback saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackEntry"
+        "400":
+          description: Invalid feedback
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Database is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Could not save feedback
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /dashboard:
+    get:
+      operationId: getFeedbackDashboard
+      tags: [dashboard]
+      summary: Get feedback dashboard summary
+      description: Returns rating aggregates and the latest guest comments.
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackDashboard"
+        "500":
+          description: Could not load dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Database is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /feedback/export:
+    get:
+      operationId: exportFeedback
+      tags: [feedback]
+      summary: Export feedback as CSV
+      description: Downloads all saved guest feedback as a CSV file.
+      responses:
+        "200":
+          description: CSV export
+          content:
+            text/csv:
+              schema:
+                type: string
+        "500":
+          description: Could not export feedback
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Database is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +124,105 @@ components:
           type: string
       required:
         - status
+    FeedbackInput:
+      type: object
+      properties:
+        overall:
+          type: integer
+          minimum: 1
+          maximum: 5
+        food:
+          type: integer
+          minimum: 1
+          maximum: 5
+        service:
+          type: integer
+          minimum: 1
+          maximum: 5
+        ambience:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          maxLength: 1000
+        name:
+          type: ["string", "null"]
+          maxLength: 60
+      required: [overall, food, service, ambience]
+    FeedbackEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        overall:
+          type: integer
+        food:
+          type: integer
+        service:
+          type: integer
+        ambience:
+          type: integer
+        comment:
+          type: ["string", "null"]
+        name:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, overall, food, service, ambience, comment, name, createdAt]
+    RatingCount:
+      type: object
+      properties:
+        rating:
+          type: integer
+        count:
+          type: integer
+      required: [rating, count]
+    CategoryAverage:
+      type: object
+      properties:
+        category:
+          type: string
+          enum: [Food, Service, Ambience]
+        average:
+          type: number
+      required: [category, average]
+    FeedbackDashboard:
+      type: object
+      properties:
+        responseCount:
+          type: integer
+        averageOverall:
+          type: ["number", "null"]
+        topCategory:
+          type: ["string", "null"]
+        topCategoryAverage:
+          type: ["number", "null"]
+        distribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/RatingCount"
+        categoryAverages:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryAverage"
+        latestComments:
+          type: array
+          items:
+            $ref: "#/components/schemas/FeedbackEntry"
+      required:
+        - responseCount
+        - averageOverall
+        - topCategory
+        - topCategoryAverage
+        - distribution
+        - categoryAverages
+        - latestComments
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
 
