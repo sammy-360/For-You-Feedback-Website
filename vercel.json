@@ -1,7 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --dir artifacts/for-you-feedback run build",
+  "installCommand": "pnpm install",
+  "buildCommand": "pnpm --filter @workspace/for-you-feedback run build",
   "outputDirectory": "artifacts/for-you-feedback/dist/public",
-  "framework": "vite"
+  "functions": {
+    "artifacts/for-you-feedback/api/**/*.ts": {
+      "maxDuration": 10
+    }
+  }
 }
