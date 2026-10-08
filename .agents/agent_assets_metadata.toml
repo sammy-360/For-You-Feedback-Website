@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "dj51Oq9B-EWJML_jZWCGh"
+uri = "file://downloads/for-you-feedback-workspace.zip"
+type = "unspecified"
+title = "For You Feedback — source ZIP"
+description = "Download the full buildable workspace source, including the Vercel-ready app and its shared packages. Git history, internal Replit context, dependencies, and local environment files are excluded."
+logical_id = "e5a327a6-101c-44a5-ae89-a08c2dc1de32"
+content_hash = "sha256:232b24c7b35f6b12b1b663fb85df6e4142ff9d0b6cde1f8a931170202bc7efea"
+size = 248283
+mtime_ms = 1791455113864
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:7509d0ef-b48e-4758-9cc1-7819b2c52176/e5a327a6-101c-44a5-ae89-a08c2dc1de32/6842a9eb-fe4d-4245-b11e-87a4c65c465a"
+storage_version_token = "1791455125789334"
+content_type = "application/octet-stream"
