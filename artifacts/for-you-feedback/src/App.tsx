@@ -1,26 +1,25 @@
 import { type FormEvent, type ReactNode, useState } from 'react';
-import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
-import {
-  getExportFeedbackQueryKey,
-  getGetFeedbackDashboardQueryKey,
-  useExportFeedback,
-  useGetFeedbackDashboard,
-  useSubmitFeedback,
-} from '@workspace/api-client-react';
-import type { FeedbackDashboard, FeedbackInput } from '@workspace/api-client-react';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, getDocs, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock3, MessageSquareText, RefreshCw, Star, UtensilsCrossed } from 'lucide-react';
-import {
-  Route,
-  Switch,
-  useLocation,
-  Router as WouterRouter,
-} from 'wouter';
+import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 
 const queryClient = new QueryClient();
+
+interface DashboardData {
+  responseCount: number;
+  averageOverall: number;
+  distribution: { rating: number; count: number }[];
+  categoryAverages: { category: string; average: number }[];
+  topCategory: string;
+  topCategoryAverage: number;
+  latestComments: { id: string; overall: number; comment?: string; name?: string; createdAt: string }[];
+}
 
 function Home() {
   const [staffMode, setStaffMode] = useState(false);
@@ -29,20 +28,66 @@ function Home() {
   const [name, setName] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
+  
   const queryClient = useQueryClient();
-  const dashboard = useGetFeedbackDashboard({
-    query: { enabled: staffMode, queryKey: getGetFeedbackDashboardQueryKey(), refetchOnMount: 'always' },
-  });
-  const submitFeedback = useSubmitFeedback({
-    mutation: {
-      onSuccess: async () => {
-        setSubmitted(true);
-        await queryClient.invalidateQueries({ queryKey: getGetFeedbackDashboardQueryKey() });
-      },
+
+  // Fetch dashboard data directly from Firebase
+  const { data: dashboardData, isLoading, isError, error, refetch } = useQuery<DashboardData>({
+    queryKey: ['dashboard'],
+    queryFn: async () => {
+      const q = query(collection(db, 'feedback'), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      const total = docs.length;
+      const sumOverall = docs.reduce((acc, curr) => acc + (curr.overall || 0), 0);
+      const averageOverall = total > 0 ? sumOverall / total : 0;
+      
+      const distribution = [5, 4, 3, 2, 1].map(rating => ({
+        rating,
+        count: docs.filter((d: any) => d.overall === rating).length
+      }));
+      
+      const categoryAverages = ['food', 'service', 'ambience'].map(cat => {
+        const sum = docs.reduce((acc, curr) => acc + (curr[cat] || 0), 0);
+        return { category: cat, average: total > 0 ? sum / total : 0 };
+      });
+      
+      const topCategory = categoryAverages.reduce((prev, current) => (prev.average > current.average) ? prev : current, categoryAverages[0]);
+
+      return {
+        responseCount: total,
+        averageOverall,
+        distribution,
+        categoryAverages,
+        topCategory: topCategory?.category || '—',
+        topCategoryAverage: topCategory?.average || 0,
+        latestComments: docs.filter((d: any) => d.comment).slice(0, 10).map((d: any) => ({
+          id: d.id,
+          overall: d.overall,
+          comment: d.comment,
+          name: d.name,
+          createdAt: d.createdAt?.toDate ? d.createdAt.toDate().toISOString() : d.createdAt
+        }))
+      };
     },
+    enabled: staffMode,
   });
-  const exportQuery = useExportFeedback({
-    query: { enabled: false, queryKey: getExportFeedbackQueryKey() },
+
+  // Submit feedback directly to Firebase
+  const submitMutation = useMutation({
+    mutationFn: async (input: any) => {
+      await addDoc(collection(db, 'feedback'), {
+        ...input,
+        createdAt: serverTimestamp(),
+      });
+    },
+    onSuccess: () => {
+      setSubmitted(true);
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    }
   });
 
   const setRating = (category: keyof typeof ratings, value: number) => {
@@ -57,24 +102,55 @@ function Home() {
       return;
     }
     setFormError('');
-    const input: FeedbackInput = {
+    const input = {
       ...ratings,
       ...(comment.trim() ? { comment: comment.trim() } : {}),
       ...(name.trim() ? { name: name.trim() } : {}),
     };
-    submitFeedback.mutate({ data: input });
+    submitMutation.mutate(input);
   };
 
   const handleExport = async () => {
-    const result = await exportQuery.refetch();
-    if (result.data !== undefined) {
-      const file = new Blob([result.data], { type: 'text/csv;charset=utf-8' });
+    setIsExporting(true);
+    setExportError('');
+    try {
+      const q = query(collection(db, 'feedback'), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      if (docs.length === 0) {
+        setExportError('No feedback to export.');
+        return;
+      }
+      
+      const headers = ['Date', 'Name', 'Overall', 'Food', 'Service', 'Ambience', 'Comment'];
+      const csvRows = [headers.join(',')];
+      
+      docs.forEach((doc: any) => {
+        const date = doc.createdAt?.toDate ? doc.createdAt.toDate().toLocaleString() : (doc.createdAt || 'Unknown');
+        const row = [
+          `"${date}"`,
+          `"${(doc.name || 'Anonymous').replace(/"/g, '""')}"`,
+          doc.overall || 0,
+          doc.food || 0,
+          doc.service || 0,
+          doc.ambience || 0,
+          `"${(doc.comment || '').replace(/"/g, '""')}"`
+        ];
+        csvRows.push(row.join(','));
+      });
+      
+      const file = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(file);
       const link = document.createElement('a');
       link.href = url;
       link.download = 'for-you-feedback.csv';
       link.click();
       URL.revokeObjectURL(url);
+    } catch (err) {
+      setExportError('Could not prepare the CSV. Please try again.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -91,14 +167,14 @@ function Home() {
       </header>
       {staffMode ? (
         <StaffDashboard
-          data={dashboard.data}
-          isLoading={dashboard.isLoading || dashboard.isFetching}
-          isError={dashboard.isError}
-          error={dashboard.error}
-          onRefresh={() => void dashboard.refetch()}
+          data={dashboardData}
+          isLoading={isLoading}
+          isError={isError}
+          error={error}
+          onRefresh={() => void refetch()}
           onExport={handleExport}
-          isExporting={exportQuery.isFetching}
-          exportError={exportQuery.isError ? 'Could not prepare the CSV. Please try again.' : ''}
+          isExporting={isExporting}
+          exportError={exportError}
         />
       ) : (
         <main className="guest-layout fade-up">
@@ -136,9 +212,9 @@ function Home() {
                   <input id="feedback-name" className="text-input" data-testid="input-name" maxLength={60} placeholder="Your name" value={name} onChange={(event) => setName(event.target.value)} />
                 </div>
                 {formError && <div className="status-message status-error" role="alert" data-testid="status-form-error">{formError}</div>}
-                {submitFeedback.isError && <div className="status-message status-error" role="alert" data-testid="status-submit-error">We couldn't send your feedback. Please try again.</div>}
-                <button className="submit-button" type="submit" data-testid="button-submit-feedback" disabled={submitFeedback.isPending}>
-                  {submitFeedback.isPending ? 'Sending your feedback…' : 'Send feedback'} {!submitFeedback.isPending && <ArrowRight size={14} />}
+                {submitMutation.isError && <div className="status-message status-error" role="alert" data-testid="status-submit-error">We couldn't send your feedback. Please try again.</div>}
+                <button className="submit-button" type="submit" data-testid="button-submit-feedback" disabled={submitMutation.isPending}>
+                  {submitMutation.isPending ? 'Sending your feedback…' : 'Send feedback'} {!submitMutation.isPending && <ArrowRight size={14} />}
                 </button>
                 <p className="form-hint">Comments and optional names are visible to anyone with this website link.</p>
               </form>
@@ -176,7 +252,7 @@ function RatingControl({ label, field, value, onChange, large = false }: {
 }
 
 function StaffDashboard({ data, isLoading, isError, error, onRefresh, onExport, isExporting, exportError }: {
-  data?: FeedbackDashboard; isLoading: boolean; isError: boolean; error: unknown;
+  data?: DashboardData; isLoading: boolean; isError: boolean; error: unknown;
   onRefresh: () => void; onExport: () => void; isExporting: boolean; exportError: string;
 }) {
   if (isError) {
@@ -245,8 +321,6 @@ function formatDate(value: string) {
 
 function Router() {
   return (
-    // Keep a shared shell (sidebar, navbar) outside the boundary so it
-    // survives a page crash.
     <RoutedErrorBoundary>
       <Switch>
         <Route path="/" component={Home} />
@@ -273,5 +347,7 @@ function App() {
     </QueryClientProvider>
   );
 }
+
+export default App;
 
 export default App;
