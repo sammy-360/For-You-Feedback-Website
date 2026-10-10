@@ -75,7 +75,8 @@
     "wouter": "^3.3.5",
     "zod": "catalog:"
   },
-  "dependencies": {
+   "dependencies": {
+    "firebase": "^10.11.0",
     "@neondatabase/serverless": "^1.2.0",
     "@workspace/feedback-store": "workspace:*"
   }
