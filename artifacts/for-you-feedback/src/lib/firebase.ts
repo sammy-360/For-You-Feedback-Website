@@ -3,7 +3,8 @@ import { getFirestore } from "firebase/firestore";
 
 // TODO: Replace this with your actual Firebase config from the Firebase Console
 const firebaseConfig = {
-   apiKey: "AIzaSyDuxcG1POu8jyaAdlc88atjfD0QNyGmTeY",
+
+  apiKey: "AIzaSyDuxcG1POu8jyaAdlc88atjfD0QNyGmTeY",
 
   authDomain: "for-you-chinese.firebaseapp.com",
 
@@ -18,6 +19,7 @@ const firebaseConfig = {
   measurementId: "G-TBJVK0V0HN"
 
 };
+
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
